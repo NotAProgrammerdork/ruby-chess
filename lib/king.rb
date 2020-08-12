@@ -17,9 +17,13 @@ class King
   def set_moves
     @moves = [
       [@pos[0] - 1, @pos[1]],
+      [@pos[0] - 1, @pos[1] + 1],
       [@pos[0], @pos[1] + 1],
+      [@pos[0] + 1, @pos[1] + 1],
       [@pos[0] + 1, @pos[1]],
+      [@pos[0] + 1, @pos[1] - 1],
       [@pos[0], @pos[1] - 1],
+      [@pos[0] - 1, @pos[1] - 1]
     ]
   end
 
