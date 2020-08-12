@@ -1,5 +1,6 @@
 class Queen
-  attr_reader :pos, :moves, :piece, :color
+  attr_accessor :pos
+  attr_reader :moves, :piece, :color
 
   def initialize(color, pos)
     if color == "white"
@@ -10,11 +11,11 @@ class Queen
       @piece = "♛"
     end
     @pos = pos
-    @moves = set_moves
+    set_moves
   end
   
   def set_moves
-    [
+    @moves = [
       [@pos[0] - 1, @pos[1]],
       [@pos[0] - 2, @pos[1]],
       [@pos[0] - 3, @pos[1]],

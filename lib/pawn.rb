@@ -1,6 +1,7 @@
 class Pawn
-  attr_reader :pos, :moves, :piece, :color
-
+  attr_accessor :pos
+  attr_reader :moves, :piece, :color
+  
   def initialize(color, pos)
     if color == "white"
       @color = "white"
@@ -10,10 +11,10 @@ class Pawn
       @piece = "♟"
     end
     @pos = pos
-    @moves = set_moves
+    set_moves
   end
   
   def set_moves
-    [[@pos[0]-1, @pos[1]]]
+    @moves = [[@pos[0]-1, @pos[1]]]
   end
 end
