@@ -7,6 +7,7 @@ require_relative 'king.rb'
 
 class Chess
   def initialize
+    clear
     each_piece
     make_board
     puts "chess"
@@ -15,6 +16,7 @@ class Chess
     @first_player = gets.chomp
     print "> Second_player: "
     @second_player = gets.chomp
+    clear
     play(1)
   end
 
@@ -77,7 +79,6 @@ class Chess
   end
 
   def play(player)
-    system "clear"
     print_board
     if player == 1
       name = @first_player
@@ -90,27 +91,22 @@ class Chess
     end
     puts "> #{name} ="
     print "   from: "
-    from = gets.chomp.downcase.split ""
-    from = change_places(from)
+    from = change_places(gets.chomp.downcase.split "")
     unless (0..7).include?(from[0]) &&
            (0..7).include?(from[1])
 
-      return play(player)
-    end
-    print "   to: "
-    to = gets.chomp.downcase.split ""
-    to = change_places(to)
-    unless (0..7).include?(to[0]) &&
-           (0..7).include?(to[1])
-
-      return play(player)
+      return error(player, "That piece doesn't exist")
     end
     piece = @board[from[0]][from[1]]
-    return play(player) unless piece.moves.include?(to)
-    piece.pos = to
-    piece.set_moves
-    make_board
-    play(2)
+    unless piece != "-" &&
+           piece.color == color
+
+      return error(player, "It isn't your color")
+    end
+    print "   to: "
+    to = change_places(gets.chomp.downcase.split "")
+    return error(player, "Wrong movement") unless piece.moves.include?(to)
+    change_position(player, piece, to)
   end
 
   def change_places(ary)
@@ -120,6 +116,24 @@ class Chess
     ary[0] = ary[0].to_i * -1 + 8
     ary[1] = Array("a".."h").index(ary[1])
     ary
+  end
+
+  def error(player, message)
+    clear
+    puts message
+    play(player)
+  end
+
+  def change_position(player, piece, to)
+    piece.pos = to
+    piece.set_moves
+    make_board
+    clear
+    player == 1 ? play(2) : play(1)
+  end
+  
+  def clear
+    (system "cls") || (system "clear")
   end
 end
 
