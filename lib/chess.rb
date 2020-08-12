@@ -15,7 +15,6 @@ class Chess
     @first_player = gets.chomp
     print "> Second_player: "
     @second_player = gets.chomp
-    print_board
     play(1)
   end
 
@@ -31,11 +30,11 @@ class Chess
 
     @white_game.each do |piece|
       pos = piece.pos
-      @board[pos[0]][pos[1]] = piece.piece
+      @board[pos[0]][pos[1]] = piece
     end
     @black_game.each do |piece|
       pos = piece.pos
-      @board[pos[0]][pos[1]] = piece.piece
+      @board[pos[0]][pos[1]] = piece
     end
   end
 
@@ -78,6 +77,8 @@ class Chess
   end
 
   def play(player)
+    system "clear"
+    print_board
     if player == 1
       name = @first_player
       color = "white"
@@ -104,12 +105,12 @@ class Chess
 
       return play(player)
     end
-    piece = get_piece(from, game)
+    piece = @board[from[0]][from[1]]
     return play(player) unless piece.moves.include?(to)
     piece.pos = to
     piece.set_moves
     make_board
-    print_board
+    play(2)
   end
 
   def change_places(ary)
@@ -119,13 +120,6 @@ class Chess
     ary[0] = ary[0].to_i * -1 + 8
     ary[1] = Array("a".."h").index(ary[1])
     ary
-  end
-
-  def get_piece(from, game)
-    piece = game.select do |piece|
-      piece.pos == from
-    end
-    piece[0]
   end
 end
 
