@@ -92,15 +92,12 @@ class Chess
     puts "> #{name} ="
     print "   from: "
     from = change_places(gets.chomp.downcase.split "")
-    unless (0..7).include?(from[0]) &&
-           (0..7).include?(from[1])
-
+    if from[0].nil? || from[1].nil?
       return error(player, "That piece doesn't exist")
     end
     piece = @board[from[0]][from[1]]
-    unless piece != "-" &&
-           piece.color == color
-
+    return error(player, "That piece doesn't exist") if piece == "-"
+    unless piece.color == color
       return error(player, "It isn't your color")
     end
     print "   to: "
@@ -111,9 +108,9 @@ class Chess
 
   def change_places(ary)
     temp = ary[0]
-    ary[0] = ary[1]
+    ary[0] = ary[1].to_i
     ary[1] = temp
-    ary[0] = ary[0].to_i * -1 + 8
+    ary[0] = [8,7,6,5,4,3,2,1].index(ary[0])
     ary[1] = Array("a".."h").index(ary[1])
     ary
   end
