@@ -86,15 +86,13 @@ class Chess
       name = @first_player
       color = "white"
       game = @white_game
-      points = @points1
     else
       name = @second_player
       color = "black"
       game = @black_game
-      points = @points2
     end
     
-    puts
+    puts player == 1 ? @points1 : @points2
     puts "> #{name} ="
     print "   from: "
     from = change_places(gets.chomp.strip.downcase.split "")
@@ -123,7 +121,7 @@ class Chess
     to = change_places(gets.chomp.downcase.split "")
     return error(player, "Wrong movement") unless piece.moves.include?(to)
     
-    change_position(player, piece, to, points)
+    change_position(player, piece, to)
   end
 
   def change_places(ary)
@@ -141,11 +139,19 @@ class Chess
     play(player)
   end
 
-  def change_position(player, piece, to, points)
+  def change_position(player, piece, to)
     piece.pos = to
     piece.set_moves
     square = @board[to[0]][to[1]]
-    points += square.value unless square == "-"
+    unless square == "-"
+      if player == 1
+        @points1 += square.value
+        @black_game.delete(square)
+      else
+        @points2 += square.value
+        @white_game.delete(square)
+      end
+    end
     make_board
     clear
     player == 1 ? play(2) : play(1)
