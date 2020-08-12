@@ -2,10 +2,9 @@ require_relative 'pawn.rb'
 require_relative 'knight.rb'
 require_relative 'bishop.rb'
 require_relative 'rook.rb'
-=begin
 require_relative 'queen.rb'
-require_relative 'king.rb'
-=end
+#require_relative 'king.rb'
+
 class Chess
   def initialize
     each_path
@@ -63,7 +62,7 @@ class Chess
                    Knight.new("white", [7,1]), Knight.new("white", [7,6]),
                    Bishop.new("white", [7,2]), Bishop.new("white", [7,5]),
                    Rook.new("white", [7,0]), Rook.new("white", [7,7]),
-                   #Queen.new("white", [7,3]), King.new("white", [7,4])
+                   Queen.new("white", [7,3])#, King.new("white", [7,4])
                   ]
 
     @black_game = [Pawn.new("black", [1,0]), Pawn.new("black", [1,1]),
@@ -73,7 +72,7 @@ class Chess
                    Knight.new("black", [0,1]), Knight.new("black", [0,6]),
                    Bishop.new("black", [0,2]), Bishop.new("black", [0,5]),
                    Rook.new("black", [0,0]), Rook.new("black", [0,7]),
-                   #Queen.new("black", [0,3]), King.new("black", [0,4])
+                   Queen.new("black", [0,3])#, King.new("black", [0,4])
                   ]
   end
 
