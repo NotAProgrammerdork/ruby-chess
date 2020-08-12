@@ -26,4 +26,8 @@ class Knight
       [@pos[0] - 2, @pos[1] - 1]
     ]
   end
+
+  def to_s
+    self.piece
+  end
 end

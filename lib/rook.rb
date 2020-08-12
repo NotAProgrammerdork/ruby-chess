@@ -49,4 +49,8 @@ class Rook
       [@pos[0], @pos[1] - 7]
     ]
   end
+
+  def to_s
+    self.piece
+  end
 end

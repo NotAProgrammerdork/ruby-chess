@@ -22,4 +22,8 @@ class King
       [@pos[0], @pos[1] - 1],
     ]
   end
+
+  def to_s
+    self.piece
+  end
 end

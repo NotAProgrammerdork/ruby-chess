@@ -49,4 +49,8 @@ class Bishop
       [@pos[0] - 7, @pos[1] - 7]
     ]
   end
+
+  def to_s
+    self.piece
+  end
 end
