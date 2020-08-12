@@ -104,7 +104,12 @@ class Chess
 
       return play(player)
     end
-    evaluation(game, color, from, to)
+    piece = get_piece(from, game)
+    return play(player) unless piece.moves.include?(to)
+    piece.pos = to
+    piece.set_moves
+    make_board
+    print_board
   end
 
   def change_places(ary)
@@ -116,10 +121,11 @@ class Chess
     ary
   end
 
-  def evaluation(game, color, from, to)
+  def get_piece(from, game)
     piece = game.select do |piece|
       piece.pos == from
     end
+    piece[0]
   end
 end
 
