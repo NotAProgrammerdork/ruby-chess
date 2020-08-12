@@ -12,6 +12,8 @@ class Chess
     make_board
     @points1 = 0
     @points2 = 0
+    @dom_black = []
+    @dom_white = []
     puts "chess"
     puts
     print "> First_player: "
@@ -66,8 +68,7 @@ class Chess
                    Knight.new("white", [7,1]), Knight.new("white", [7,6]),
                    Bishop.new("white", [7,2]), Bishop.new("white", [7,5]),
                    Rook.new("white", [7,0]), Rook.new("white", [7,7]),
-                   Queen.new("white", [7,3]), King.new("white", [7,4])
-                  ]
+                   Queen.new("white", [7,3]), King.new("white", [7,4])]
 
     @black_game = [Pawn.new("black", [1,0]), Pawn.new("black", [1,1]),
                    Pawn.new("black", [1,2]), Pawn.new("black", [1,3]),
@@ -76,8 +77,7 @@ class Chess
                    Knight.new("black", [0,1]), Knight.new("black", [0,6]),
                    Bishop.new("black", [0,2]), Bishop.new("black", [0,5]),
                    Rook.new("black", [0,0]), Rook.new("black", [0,7]),
-                   Queen.new("black", [0,3]), King.new("black", [0,4])
-                  ]
+                   Queen.new("black", [0,3]), King.new("black", [0,4])]
   end
 
   def play(player)
@@ -92,8 +92,18 @@ class Chess
       game = @black_game
     end
     
-    puts player == 1 ? @points1 : @points2
-    puts "> #{name} ="
+    dom = (player == 1 ? @dom_black : @dom_white)
+    points = (player == 1 ? @points1 : @points2)
+    dom.each_with_index do |piece, idx|
+      print piece
+      if piece == dom.last
+        puts " == #{points}"
+        break
+      end
+      print (idx+1 % 5 == 0) ? "\n" : " "
+    end
+    puts
+    puts "> #{name} (#{color.capitalize})"
     print "   from: "
     from = change_places(gets.chomp.strip.downcase.split "")
     
@@ -147,9 +157,11 @@ class Chess
       if player == 1
         @points1 += square.value
         @black_game.delete(square)
+        @dom_black << square
       else
         @points2 += square.value
         @white_game.delete(square)
+        @dom_white << square
       end
     end
     make_board
