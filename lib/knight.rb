@@ -9,14 +9,14 @@ class Knight
   
   def set_moves
     [
-      [pos[0] - 2, pos[1] + 1],
-      [pos[0] - 1, pos[1] + 2],
-      [pos[0] + 1, pos[1] + 2],
-      [pos[0] + 2, pos[1] + 1],
-      [pos[0] + 2, pos[1] - 1],
-      [pos[0] + 1, pos[1] - 2],
-      [pos[0] - 1, pos[1] - 2],
-      [pos[0] - 2, pos[1] - 1]
+      [@pos[0] - 2, @pos[1] + 1],
+      [@pos[0] - 1, @pos[1] + 2],
+      [@pos[0] + 1, @pos[1] + 2],
+      [@pos[0] + 2, @pos[1] + 1],
+      [@pos[0] + 2, @pos[1] - 1],
+      [@pos[0] + 1, @pos[1] - 2],
+      [@pos[0] - 1, @pos[1] - 2],
+      [@pos[0] - 2, @pos[1] - 1]
     ]
   end
 end
