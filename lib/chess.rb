@@ -10,6 +10,8 @@ class Chess
     clear
     each_piece
     make_board
+    @points1 = 0
+    @points2 = 0
     puts "chess"
     puts
     print "> First_player: "
@@ -84,26 +86,44 @@ class Chess
       name = @first_player
       color = "white"
       game = @white_game
+      points = @points1
     else
       name = @second_player
       color = "black"
       game = @black_game
+      points = @points2
     end
+    
+    puts
     puts "> #{name} ="
     print "   from: "
-    from = change_places(gets.chomp.downcase.split "")
+    from = change_places(gets.chomp.strip.downcase.split "")
+    
     if from[0].nil? || from[1].nil?
       return error(player, "That piece doesn't exist")
     end
+    
     piece = @board[from[0]][from[1]]
     return error(player, "That piece doesn't exist") if piece == "-"
-    unless piece.color == color
-      return error(player, "It isn't your color")
+    return error(player, "It isn't your color") unless piece.color == color
+    
+    if piece.class == Pawn
+      if color == "white"
+        piece.moves = [] if @board[from[0]-1][from[1]] != "-"
+        piece.moves << [from[0]-1,from[1]+1] if @board[from[0]-1][from[1]+1] != "-"
+        piece.moves << [from[0]-1,from[1]-1] if @board[from[0]-1][from[1]-1] != "-"
+      else
+        piece.moves = [] if @board[from[0]+1][from[1]] != "-"
+        piece.moves << [from[0]+1,from[1]+1] if @board[from[0]+1][from[1]+1] != "-"
+        piece.moves << [from[0]+1,from[1]-1] if @board[from[0]+1][from[1]-1] != "-"
+      end
     end
+    
     print "   to: "
     to = change_places(gets.chomp.downcase.split "")
     return error(player, "Wrong movement") unless piece.moves.include?(to)
-    change_position(player, piece, to)
+    
+    change_position(player, piece, to, points)
   end
 
   def change_places(ary)
@@ -121,9 +141,11 @@ class Chess
     play(player)
   end
 
-  def change_position(player, piece, to)
+  def change_position(player, piece, to, points)
     piece.pos = to
     piece.set_moves
+    square = @board[to[0]][to[1]]
+    points += square.value unless square == "-"
     make_board
     clear
     player == 1 ? play(2) : play(1)

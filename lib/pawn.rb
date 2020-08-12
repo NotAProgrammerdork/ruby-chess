@@ -1,6 +1,6 @@
 class Pawn
-  attr_accessor :pos
-  attr_reader :color, :piece, :value, :moves
+  attr_accessor :pos, :moves
+  attr_reader :color, :piece, :value
   
   def initialize(color, pos)
     if color == "white"
