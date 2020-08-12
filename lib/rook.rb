@@ -1,8 +1,14 @@
 class Rook
-  attr_reader :pos, :moves, :piece
+  attr_reader :pos, :moves, :piece, :color
 
   def initialize(color, pos)
-    @piece = (color == "white") ? "♖" : "♜"
+    if color == "white"
+      @color = "white"
+      @piece = "♖"
+    else
+      @color = "black"
+      @piece = "♜"
+    end
     @pos = pos
     @moves = set_moves
   end
