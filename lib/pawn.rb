@@ -15,7 +15,11 @@ class Pawn
   end
   
   def set_moves
-    @moves = [[@pos[0]-1, @pos[1]]]
+    if @color == "white"
+      @moves = [[@pos[0]-1, @pos[1]]]
+    else
+      @moves = [[@pos[0]+1, @pos[1]]]
+    end
   end
 
   def to_s
