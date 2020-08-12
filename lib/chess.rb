@@ -7,7 +7,7 @@ require_relative 'king.rb'
 
 class Chess
   def initialize
-    each_path
+    each_piece
     make_board
     puts "chess"
     puts
@@ -16,7 +16,7 @@ class Chess
     print "> Second_player: "
     @second_player = gets.chomp
     print_board
-    #play(@first_player)
+    play(1)
   end
 
   def make_board
@@ -28,6 +28,7 @@ class Chess
               ["-", "-", "-", "-", "-", "-", "-", "-"],
               ["-", "-", "-", "-", "-", "-", "-", "-"],
               ["-", "-", "-", "-", "-", "-", "-", "-"]]
+
     @white_game.each do |piece|
       pos = piece.pos
       @board[pos[0]][pos[1]] = piece.piece
@@ -54,7 +55,7 @@ class Chess
     puts
   end
 
-  def each_path
+  def each_piece
     @white_game = [Pawn.new("white", [6,0]), Pawn.new("white", [6,1]),
                    Pawn.new("white", [6,2]), Pawn.new("white", [6,3]),
                    Pawn.new("white", [6,4]), Pawn.new("white", [6,5]),
@@ -77,20 +78,48 @@ class Chess
   end
 
   def play(player)
-    puts "> #{player}: "
-    print "  "
+    if player == 1
+      name = @first_player
+      color = "white"
+      game = @white_game
+    else
+      name = @second_player
+      color = "black"
+      game = @black_game
+    end
+    puts "> #{name} ="
+    print "   from: "
     from = gets.chomp.downcase.split ""
-    print "  "
-    to = gets.chomp.downcase.split " "
-    coords[1] = coords[1].to_i
-    unless coords.length == 2 &&
-           ("a".."h").include?(coords[0]) &&
-           (1..8).include?(coords[1])
+    from = change_places(from)
+    unless (0..7).include?(from[0]) &&
+           (0..7).include?(from[1])
 
       return play(player)
     end
-    x = Array("a".."h").index coords[0]
-    y = 8 * coords[1] - coords[1]
+    print "   to: "
+    to = gets.chomp.downcase.split ""
+    to = change_places(to)
+    unless (0..7).include?(to[0]) &&
+           (0..7).include?(to[1])
+
+      return play(player)
+    end
+    evaluation(game, color, from, to)
+  end
+
+  def change_places(ary)
+    temp = ary[0]
+    ary[0] = ary[1]
+    ary[1] = temp
+    ary[0] = ary[0].to_i * -1 + 8
+    ary[1] = Array("a".."h").index(ary[1])
+    ary
+  end
+
+  def evaluation(game, color, from, to)
+    piece = game.select do |piece|
+      piece.pos == from
+    end
   end
 end
 
