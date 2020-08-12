@@ -1,6 +1,6 @@
 class Knight
   attr_accessor :pos
-  attr_reader :moves, :piece, :color
+  attr_reader :color, :piece, :value, :moves
 
   def initialize(color, pos)
     if color == "white"
@@ -11,6 +11,7 @@ class Knight
       @piece = "♞"
     end
     @pos = pos
+    @value = 3
     set_moves
   end
   
