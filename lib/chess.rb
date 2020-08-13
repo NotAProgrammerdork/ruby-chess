@@ -133,10 +133,12 @@ class Chess
     
     print "   to: "
     to = change_places(gets.chomp.downcase.split "")
-    if !piece.moves.include?(to) ||
-       enemy_king.pos == to
+    return error(player, "Wrong movement") unless piece.moves.include?(to)
+    
+    if @board[to[0]][to[1]] != "-" &&
+       @board[to[0]][to[1]].color == color
       
-      return error(player, "Wrong movement") 
+      return error(player, "Occupied!")
     end
     
     change_position(player, piece, to, enemy_king)
