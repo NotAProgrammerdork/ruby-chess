@@ -34,11 +34,11 @@ class Chess
               ["-", "-", "-", "-", "-", "-", "-", "-"],
               ["-", "-", "-", "-", "-", "-", "-", "-"]]
 
-    @white_game.each do |piece|
+    @white_pieces.each do |piece|
       pos = piece.pos
       @board[pos[0]][pos[1]] = piece
     end
-    @black_game.each do |piece|
+    @black_pieces.each do |piece|
       pos = piece.pos
       @board[pos[0]][pos[1]] = piece
     end
@@ -61,35 +61,39 @@ class Chess
   end
 
   def each_piece
-    @white_game = [Pawn.new("white", [6,0]), Pawn.new("white", [6,1]),
-                   Pawn.new("white", [6,2]), Pawn.new("white", [6,3]),
-                   Pawn.new("white", [6,4]), Pawn.new("white", [6,5]),
-                   Pawn.new("white", [6,6]), Pawn.new("white", [6,7]),
-                   Knight.new("white", [7,1]), Knight.new("white", [7,6]),
-                   Bishop.new("white", [7,2]), Bishop.new("white", [7,5]),
-                   Rook.new("white", [7,0]), Rook.new("white", [7,7]),
-                   Queen.new("white", [7,3]), King.new("white", [7,4])]
-
-    @black_game = [Pawn.new("black", [1,0]), Pawn.new("black", [1,1]),
-                   Pawn.new("black", [1,2]), Pawn.new("black", [1,3]),
-                   Pawn.new("black", [1,4]), Pawn.new("black", [1,5]),
-                   Pawn.new("black", [1,6]), Pawn.new("black", [1,7]),
-                   Knight.new("black", [0,1]), Knight.new("black", [0,6]),
-                   Bishop.new("black", [0,2]), Bishop.new("black", [0,5]),
-                   Rook.new("black", [0,0]), Rook.new("black", [0,7]),
-                   Queen.new("black", [0,3]), King.new("black", [0,4])]
+    @white_king = King.new("white", [7,4])
+    @white_pieces = [Pawn.new("white", [6,0]), Pawn.new("white", [6,1]),
+                     Pawn.new("white", [6,2]), Pawn.new("white", [6,3]),
+                     Pawn.new("white", [6,4]), Pawn.new("white", [6,5]),
+                     Pawn.new("white", [6,6]), Pawn.new("white", [6,7]),
+                     Knight.new("white", [7,1]), Knight.new("white", [7,6]),
+                     Bishop.new("white", [7,2]), Bishop.new("white", [7,5]),
+                     Rook.new("white", [7,0]), Rook.new("white", [7,7]),
+                     Queen.new("white", [7,3]), @white_king]
+    
+    @black_king = King.new("black", [0,4])
+    @black_pieces = [Pawn.new("black", [1,0]), Pawn.new("black", [1,1]),
+                     Pawn.new("black", [1,2]), Pawn.new("black", [1,3]),
+                     Pawn.new("black", [1,4]), Pawn.new("black", [1,5]),
+                     Pawn.new("black", [1,6]), Pawn.new("black", [1,7]),
+                     Knight.new("black", [0,1]), Knight.new("black", [0,6]),
+                     Bishop.new("black", [0,2]), Bishop.new("black", [0,5]),
+                     Rook.new("black", [0,0]), Rook.new("black", [0,7]),
+                     Queen.new("black", [0,3]), @black_king]
   end
-
+  
   def play(player)
     print_board
     if player == 1
       name = @first_player
       color = "white"
-      game = @white_game
+      game = @white_pieces
+      enemy_king = @black_king
     else
       name = @second_player
       color = "black"
-      game = @black_game
+      game = @black_pieces
+      enemy_king = @white_king
     end
     
     dom = (player == 1 ? @dom_black : @dom_white)
@@ -129,11 +133,15 @@ class Chess
     
     print "   to: "
     to = change_places(gets.chomp.downcase.split "")
-    return error(player, "Wrong movement") unless piece.moves.include?(to)
+    if !piece.moves.include?(to) ||
+       enemy_king.pos == to
+      
+      return error(player, "Wrong movement") 
+    end
     
-    change_position(player, piece, to)
+    change_position(player, piece, to, enemy_king)
   end
-
+  
   def change_places(ary)
     temp = ary[0]
     ary[0] = ary[1].to_i
@@ -149,24 +157,44 @@ class Chess
     play(player)
   end
 
-  def change_position(player, piece, to)
+  def change_position(player, piece, to, enemy_king)
     piece.pos = to
     piece.set_moves
     square = @board[to[0]][to[1]]
     unless square == "-"
       if player == 1
         @points1 += square.value
-        @black_game.delete(square)
+        @black_pieces.delete(square)
         @dom_black << square
       else
         @points2 += square.value
-        @white_game.delete(square)
+        @white_pieces.delete(square)
         @dom_white << square
       end
     end
     make_board
+    filter_king_mvs(player, enemy_king)
+    return checkmate(player) if enemy_king.moves.empty?
     clear
     player == 1 ? play(2) : play(1)
+  end
+  
+  def filter_king_mvs(player, enemy_king)
+    pieces = (player == 1) ? @white_pieces : @black_pieces
+    pieces.each do |ally|
+      ally.moves.each do |move|
+        enemy_king.moves.delete(move) if enemy_king.moves.include?(move)
+      end
+    end
+    enemy_king.moves.reject! {|move| move[0] < 0 || move[1] < 0}
+  end
+  
+  def checkmate(player)
+    clear
+    winner = (player == 1) ? @first_player : @second_player
+    puts "Checkmate!"
+    puts "Winner: #{winner}"
+    print_board
   end
   
   def clear
