@@ -108,38 +108,23 @@ class Chess
     end
     puts
     puts "> #{name} (#{color.capitalize})"
+    
     print "   from: "
     from = change_places(gets.chomp.strip.downcase.split "")
-    
+
     if from[0].nil? || from[1].nil?
       return error(player, "That piece doesn't exist")
     end
-    
+
     piece = @board[from[0]][from[1]]
     return error(player, "That piece doesn't exist") if piece == "-"
     return error(player, "It isn't your color") unless piece.color == color
     
-    if piece.class == Pawn
-      if color == "white"
-        piece.moves = [] if @board[from[0]-1][from[1]] != "-"
-        piece.moves << [from[0]-1,from[1]+1] if @board[from[0]-1][from[1]+1] != "-"
-        piece.moves << [from[0]-1,from[1]-1] if @board[from[0]-1][from[1]-1] != "-"
-      else
-        piece.moves = [] if @board[from[0]+1][from[1]] != "-"
-        piece.moves << [from[0]+1,from[1]+1] if @board[from[0]+1][from[1]+1] != "-"
-        piece.moves << [from[0]+1,from[1]-1] if @board[from[0]+1][from[1]-1] != "-"
-      end
-    end
+    filter_moves(player, piece, color)
     
     print "   to: "
     to = change_places(gets.chomp.downcase.split "")
     return error(player, "Wrong movement") unless piece.moves.include?(to)
-    
-    if @board[to[0]][to[1]] != "-" &&
-       @board[to[0]][to[1]].color == color
-      
-      return error(player, "Occupied!")
-    end
     
     change_position(player, piece, to, enemy_king)
   end
@@ -160,6 +145,7 @@ class Chess
   end
 
   def change_position(player, piece, to, enemy_king)
+    enemy_color = player == 1 ? "black" : "white"
     piece.pos = to
     piece.set_moves
     square = @board[to[0]][to[1]]
@@ -175,20 +161,208 @@ class Chess
       end
     end
     make_board
-    filter_king_mvs(player, enemy_king)
-    return checkmate(player) if enemy_king.moves.empty?
+    filter_moves(player, enemy_king, enemy_color)
+    #return checkmate(player) if enemy_king.moves.empty?
     clear
     player == 1 ? play(2) : play(1)
   end
   
-  def filter_king_mvs(player, enemy_king)
-    pieces = (player == 1) ? @white_pieces : @black_pieces
-    pieces.each do |ally|
-      ally.moves.each do |move|
-        enemy_king.moves.delete(move) if enemy_king.moves.include?(move)
-      end
+  def filter_moves(player, piece, color)
+    piece.moves.select! do |move|
+      (0..7).include?(move[0]) &&
+      (0..7).include?(move[1])
     end
-    enemy_king.moves.reject! {|move| move[0] < 0 || move[1] < 0}
+
+=begin
+    if piece.class == King
+      pieces = (player == 1) ? @black_pieces : @white_pieces
+      bad_guys = []
+      pieces.each do |enemy|
+        enemy.moves.each do |move|
+          if piece.moves.include?(move)
+            piece.moves.delete(move)
+            bad_guys << enemy
+          end
+        end
+      end
+=end
+
+    if piece.class == Pawn
+      if color == "white"
+        piece.moves.clear unless is_empty?([piece.pos[0]-1,piece.pos[1]])
+        piece.moves << [piece.pos[0]-1,piece.pos[1]+1] if is_enemy?("black",[piece.pos[0]-1,piece.pos[1]+1])
+        piece.moves << [piece.pos[0]-1,piece.pos[1]-1] if is_enemy?("black",[piece.pos[0]-1,piece.pos[1]-1])
+      else
+        piece.moves.clear unless is_empty?([piece.pos[0]+1,piece.pos[1]])
+        piece.moves << [piece.pos[0]+1,piece.pos[1]+1] if is_enemy?("white",[piece.pos[0]+1,piece.pos[1]+1])
+        piece.moves << [piece.pos[0]+1,piece.pos[1]-1] if is_enemy?("white",[piece.pos[0]+1,piece.pos[1]-1])
+      end
+    
+    elsif piece.class == Bishop
+      (ur,dr,dl,ul) = Array.new(4, true)
+      dup = piece.moves.dup
+      piece.moves.clear
+      dup.each do |move|
+        if move[0] < piece.pos[0] && move[1] > piece.pos[1] # Up-Right
+          if is_empty?(move) && ur
+            piece.moves << move
+          elsif ur
+            piece.moves << move
+            ur = false
+          end
+        elsif move[0] > piece.pos[0] && move[1] > piece.pos[1] # Down-Right
+          if is_empty?(move) && dr
+            piece.moves << move
+          elsif dr
+            piece.moves << move
+            dr = false
+          end
+        elsif move[0] > piece.pos[0] && move[1] < piece.pos[1] # Down-Left
+          if is_empty?(move) && dl
+            piece.moves << move
+          elsif dl
+            piece.moves << move
+            dl = false
+          end
+        elsif move[0] < piece.pos[0] && move[1] < piece.pos[1] # Up-Left
+          if is_empty?(move) && ul
+            piece.moves << move
+          elsif ul
+            piece.moves << move
+            ul = false
+          end
+        end
+      end
+    
+    elsif piece.class == Rook
+      (u,r,d,l) = Array.new(4, true)
+      dup = piece.moves.dup
+      piece.moves.clear
+      dup.each do |move|
+        if move[0] < piece.pos[0] # Up
+          if is_empty?(move) && u
+            piece.moves << move
+          elsif u
+            piece.moves << move
+            u = false
+          end
+        elsif move[1] > piece.pos[1] # Right
+          if is_empty?(move) && r
+            piece.moves << move
+          elsif r
+            piece.moves << move
+            r = false
+          end
+        elsif move[0] > piece.pos[0] # Down
+          if is_empty?(move) && d
+            piece.moves << move
+          elsif d
+            piece.moves << move
+            d = false
+          end
+        elsif move[1] < piece.pos[1] # Left
+          if is_empty?(move) && l
+            piece.moves << move
+          elsif l
+            piece.moves << move
+            l = false
+          end
+        end
+      end
+    elsif piece.class == Queen
+      (u,ur,r,dr,d,dl,l,ul) = Array.new(8, true)
+      dup = piece.moves.dup
+      piece.moves.clear
+      dup.each do |move|
+        if move[0] < piece.pos[0] && move[1] == piece.pos[1] # Up
+          if is_empty?(move) && u
+            piece.moves << move
+          elsif u
+            piece.moves << move
+            u = false
+          end
+        elsif move[0] < piece.pos[0] && move[1] > piece.pos[1] # Up-Right
+          if is_empty(move) && ur
+            piece.moves << move
+          elsif ur
+            piece.moves << move
+            ur = false
+          end
+        elsif move[0] == piece.pos[0] && move[1] > piece.pos[1] # Right
+          if is_empty?(move) && r
+            piece.moves << move
+          elsif r
+            piece.moves << move
+            r = false
+          end
+        elsif move[0] > piece.pos[0] && move[1] > piece.pos[1] # Down-Right
+          if is_empty(move) && dr
+            piece.moves << move
+          elsif dr
+            piece.moves << move
+            dr = false
+          end
+        elsif move[0] > piece.pos[0] && move[1] == piece.pos[1] # Down
+          if is_empty?(move) && d
+            piece.moves << move
+          elsif d
+            piece.moves << move
+            d = false
+          end
+        elsif move[0] > piece.pos[0] && move[1] < piece.pos[1] # Down-Left
+          if is_empty(move) && dl
+            piece.moves << move
+          elsif dl
+            piece.moves << move
+            dl = false
+          end
+        elsif move[0] == piece.pos[0] && move[1] < piece.pos[1] # Left
+          if is_empty?(move) && l
+            piece.moves << move
+          elsif l
+            piece.moves << move
+            l = false
+          end
+        elsif move[0] < piece.pos[0] && move[1] < piece.pos[1] # Up-Left
+          if is_empty(move) && ul
+            piece.moves << move
+          elsif ul
+            piece.moves << move
+            ul = false
+          end
+        end
+      end
+      
+    end
+    
+    piece.moves.reject! {|move| is_ally?(color, move)}
+    # piece.set_moves
+    p piece.moves
+  end
+  
+  def is_enemy?(enemy_color, pos)
+    enemy = false
+    if @board[pos[0]][pos[1]] != "-" &&
+       @board[pos[0]][pos[1]].color == enemy_color
+      
+      enemy = true
+    end
+    enemy
+  end
+  
+  def is_ally?(ally_color, pos)
+    ally = false
+    if @board[pos[0]][pos[1]] != "-" &&
+       @board[pos[0]][pos[1]].color == ally_color
+      
+      ally = true
+    end
+    ally
+  end
+    
+  def is_empty?(pos)
+    @board[pos[0]][pos[1]] == "-"
+    
   end
   
   def checkmate(player)
