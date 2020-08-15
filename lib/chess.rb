@@ -130,7 +130,17 @@ class Chess
       return error(player, "Your king is in check!")
     end
     
-    filter_moves(piece, color)
+    if piece.class == Pawn
+      if piece.color == "white" && piece.pos[0] == 6 ||
+          piece.color == "black" && piece.pos[0] == 1
+        
+        filter_moves(piece, color, @board, true)
+      else
+        filter_moves(piece, color)
+      end
+    else
+      filter_moves(piece, color)
+    end
     
     print "   to: "
     to = change_places(gets.chomp.downcase.split "")
@@ -184,7 +194,7 @@ class Chess
     play(player == 1 ? 2 : 1)
   end
   
-  def filter_moves(piece, color, board=@board)
+  def filter_moves(piece, color, board=@board, first_move=false)
     piece.moves.select! do |move|
       (0..7).include?(move[0]) &&
       (0..7).include?(move[1])
@@ -209,10 +219,12 @@ class Chess
         piece.moves.clear unless is_empty?([piece.pos[0]-1,piece.pos[1]])
         piece.moves << [piece.pos[0]-1,piece.pos[1]+1] if is_enemy?("black",[piece.pos[0]-1,piece.pos[1]+1],board)
         piece.moves << [piece.pos[0]-1,piece.pos[1]-1] if is_enemy?("black",[piece.pos[0]-1,piece.pos[1]-1],board)
+        piece.moves << [piece.pos[0]-2,piece.pos[1]] if first_move
       else
         piece.moves.clear unless is_empty?([piece.pos[0]+1,piece.pos[1]])
         piece.moves << [piece.pos[0]+1,piece.pos[1]+1] if is_enemy?("white",[piece.pos[0]+1,piece.pos[1]+1],board)
         piece.moves << [piece.pos[0]+1,piece.pos[1]-1] if is_enemy?("white",[piece.pos[0]+1,piece.pos[1]-1],board)
+        piece.moves << [piece.pos[0]+2,piece.pos[1]] if first_move
       end
     
     elsif piece.class == Bishop
