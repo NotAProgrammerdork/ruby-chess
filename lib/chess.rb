@@ -21,8 +21,14 @@ class Chess
     puts
     print "> First_player: "
     @first_player = gets.chomp
+    @first_player = "White" if @first_player.length == 0
     print "> Second_player: "
     @second_player = gets.chomp
+    @second_player = "Black" if @second_player.length == 0
+    puts
+    puts "\"over\" to finish game by time"
+    puts "\"leave\" to leave"
+    gets
     clear
     play(1)
   end
@@ -85,7 +91,7 @@ class Chess
                      Queen.new("black", [0,3]), @black_king]
   end
   
-  def play(player)
+  def play(player, check=false)
     make_board
     print_board
     if player == 1
@@ -104,6 +110,7 @@ class Chess
       enemy_king = @white_king
     end
     
+    puts "-king in check-" if check
     dom = (player == 1 ? @dom_black : @dom_white)
     points = (player == 1 ? @points1 : @points2)
     dom.each_with_index do |piece, idx|
@@ -115,10 +122,10 @@ class Chess
       print (idx+1 % 5 == 0) ? "\n" : " "
     end
     puts
-    puts "> #{name} (#{color.capitalize})"
-    
+    print "> #{name}"
+    print name == color.capitalize ? "\n" : " (#{color.capitalize})\n"
     print "   from: "
-    from = change_places(gets.chomp.strip.downcase.split "")
+    from = get_input(player, gets.chomp.strip.downcase)
     
     if from[0].nil? || from[1].nil?
       return error(player, "That piece doesn't exist")
@@ -151,7 +158,7 @@ class Chess
     end
     
     print "   to: "
-    to = change_places(gets.chomp.downcase.split "")
+    to = get_input(player, gets.chomp.downcase)
     return error(player, "Wrong movement") unless piece.moves.include?(to)
     
     change_position(player, my_king, enemy_pieces, piece, from, to, enemy_king, game)
@@ -206,11 +213,28 @@ class Chess
     end
   end
   
-  def change_places(ary)
-    temp = ary[0]
-    ary[0] = [8,7,6,5,4,3,2,1].index(ary[1].to_i)
-    ary[1] = Array("a".."h").index(temp)
-    ary
+  def get_input(player, input)
+    if input == "leave"
+      if player == 1
+        winning(2, "#{@first_player} leaves")
+      else
+        winning(1, "#{@second_player} leaves")
+      end
+    elsif input == "over"
+      if @points1 > @points2
+        winning(1, "Time is over")
+      elsif @points2 > @points1
+        winning(2, "Time is over")
+      else
+        winning(nil, "Time is over")
+      end
+    else
+      input = input.split ""
+      temp = input[0]
+      input[0] = [8,7,6,5,4,3,2,1].index(input[1].to_i)
+      input[1] = Array("a".."h").index(temp)
+      input
+    end
   end
 
   def error(player, message)
@@ -308,7 +332,7 @@ class Chess
     
     @dangers.clear; @saviors.clear
     check_checkmate(enemy_king, game)
-    return checkmate(player) if @saviors.empty? && !@dangers.empty?
+    return winning(player, "Checkmate!") if @saviors.empty? && !@dangers.empty?
     unless @dangers.empty?
       @dangers.each {|danger| filter_moves(danger, danger.color)}
     end
@@ -331,7 +355,7 @@ class Chess
     end
     
     clear
-    play(player == 1 ? 2 : 1)
+    play(player == 1 ? 2 : 1, !@dangers.empty?)
   end
   
   def promotion(player, piece, error=false)
@@ -599,11 +623,13 @@ class Chess
     
   end
   
-  def checkmate(player)
+  def winning(player, reason)
     clear
     winner = (player == 1) ? @first_player : @second_player
-    puts "Checkmate!"
-    puts "Winner: #{winner}"
+    puts reason
+    puts (player.nil? ? "It's a draw!" : "Winner: #{winner}")
+    puts
+    puts " (#{@first_player}) #{@points1} <=> #{@points2} (#{@second_player})"
     make_board
     print_board
     gets
