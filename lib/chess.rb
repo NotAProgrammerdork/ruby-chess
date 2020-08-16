@@ -123,8 +123,9 @@ class Chess
     if from[0].nil? || from[1].nil?
       return error(player, "That piece doesn't exist")
     end
-
+    
     piece = @board[from[0]][from[1]]
+    
     return error(player, "That piece doesn't exist") if piece == "-"
     return error(player, "It isn't your color") unless piece.color == color
     
@@ -134,6 +135,7 @@ class Chess
       return error(player, "Your king is in check!")
     end
     
+    piece.set_moves
     filter_moves(piece, color)
     check_if_pawn_can_move_two(piece) if piece.class == Pawn
     prepare_king_for_castling(piece) if piece.class == King
@@ -311,6 +313,14 @@ class Chess
       @dangers.each {|danger| filter_moves(danger, danger.color)}
     end
     
+    if piece.class == Pawn
+      if piece.color == "white" && to[0] == 0 ||
+          piece.color == "black" && to[0] == 7
+        #return promotion(player, piece)
+        promotion(player, piece)
+      end
+    end
+    
     @passant = nil if @passant
     if piece.class == Pawn
       if to == [from[0]-2, from[1]] ||
@@ -322,6 +332,37 @@ class Chess
     
     clear
     play(player == 1 ? 2 : 1)
+  end
+  
+  def promotion(player, piece, error=false)
+    system "cls"
+    puts
+    puts (error ? "  Incorrect piece" : "  Pawn promotion")
+    puts
+    puts "> Knight  > Bishop"
+    puts "> Rook    > Queen"
+    puts
+    print "Pawn => "
+    option = gets.chomp.downcase
+    case option
+    when "knight"
+      new_piece = Knight.new(piece.color, piece.pos)
+    when "bishop"
+      new_piece = Bishop.new(piece.color, piece.pos)
+    when "rook"
+      new_piece = Rook.new(piece.color, piece.pos)
+    when "queen"
+      new_piece = Queen.new(piece.color, piece.pos)
+    else
+      return promotion(player, piece, true)
+    end
+    #new_piece.filter_moves
+    army = (piece.color == "white" ? @white_pieces : @black_pieces)
+    army.delete(piece)
+    army << new_piece
+    make_board
+    #clear
+    #play(player == 1 ? 2 : 1)
   end
   
   def execute_castling(piece, from, to)
@@ -370,19 +411,15 @@ class Chess
     
 =begin
     if piece.class == King
-      pieces = (player == 1) ? @black_pieces : @white_pieces
-      bad_guys = []
-      pieces.each do |enemy|
+      bad_guys = (player == 1) ? @black_pieces : @white_pieces
+      bad_guys.each do |enemy|
         enemy.moves.each do |move|
-          if piece.moves.include?(move)
-            piece.moves.delete(move)
-            bad_guys << enemy
-          end
+          piece.moves.delete(move) if piece.moves.include?(move)
         end
       end
 =end
 
-    if piece.class == Pawn
+    if piece.class == Pawn && !piece.moves.empty?
       if color == "white"
         piece.moves.clear unless is_empty?([piece.pos[0]-1,piece.pos[1]])
         piece.moves << [piece.pos[0]-1,piece.pos[1]+1] if is_enemy?("black",[piece.pos[0]-1,piece.pos[1]+1],board)
@@ -533,8 +570,6 @@ class Chess
     end
     
     piece.moves.reject! {|move| is_ally?(color, move)}
-    # piece.set_moves
-    #p piece.moves
   end
   
   def is_enemy?(enemy_color, pos, board=@board)
@@ -575,8 +610,7 @@ class Chess
   end
   
   def is_it_in_danger?(king_pos, enemies, dangers=@dangers)
-    enemies.each do |enemy|
-      enemy.set_moves
+    enemies.each_with_index do |enemy, idx|
       filter_moves(enemy, enemy.color)
       enemy.moves.each do |move|
         if move == king_pos
@@ -590,7 +624,7 @@ class Chess
   
   def check_checkmate(king, enemies)
     filter_moves(king, king.color)
-    return unless is_it_in_danger?(king.pos, enemies)
+    return unless is_it_in_danger?(king.pos, enemies, @dangers)
     allies = (king.color == "white") ? @white_pieces : @black_pieces
     allies.each_with_index do |ally, idx|
       ally.set_moves
