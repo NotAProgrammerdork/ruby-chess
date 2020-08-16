@@ -138,10 +138,10 @@ class Chess
     check_if_pawn_can_move_two(piece) if piece.class == Pawn
     prepare_king_for_castling(piece) if piece.class == King
     
-    if !@passant.nil?
+    unless @passant.nil? || @passant.color == "color"
       if @passant.pos == [piece.pos[0], piece.pos[1]+1]
         piece.moves << [piece.pos[0]-1, piece.pos[1]+1] if @passant.color == "black"
-        piece.moves << [piece.pos[0]+1, piece.pos[1]+1] if @passant.colot == "white"
+        piece.moves << [piece.pos[0]+1, piece.pos[1]+1] if @passant.color == "white"
       elsif @passant.pos == [piece.pos[0], piece.pos[1]-1]
         piece.moves << [piece.pos[0]-1, piece.pos[1]-1] if @passant.color == "black"
         piece.moves << [piece.pos[0]+1, piece.pos[1]-1] if @passant.color == "white"
@@ -160,7 +160,6 @@ class Chess
         piece.color == "black" && piece.pos[0] == 1
 
       filter_moves(piece, piece.color, @board, true)
-      @passant = piece
     end
   end
   
@@ -219,7 +218,7 @@ class Chess
   end
 
   def change_position(player, king, enemies, piece, from, to, enemy_king, game)
-    square = @board[to[0]][to[1]] if @passant.nil?
+    square = @board[to[0]][to[1]]
     unless @passant.nil?
       if to == [piece.pos[0]-1, piece.pos[1]+1] ||
           to == [piece.pos[0]+1, piece.pos[1]+1]
@@ -312,7 +311,15 @@ class Chess
       @dangers.each {|danger| filter_moves(danger, danger.color)}
     end
     
-    @passant = false if @passant # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    @passant = nil if @passant
+    if piece.class == Pawn
+      if to == [from[0]-2, from[1]] ||
+          to == [from[0]+2, from[1]]
+      
+        @passant = piece
+      end
+    end
+    
     clear
     play(player == 1 ? 2 : 1)
   end
