@@ -81,8 +81,8 @@ class Chess
     @white_left_rook = true; @white_right_rook = true
     @black_left_rook = true; @black_right_rook = true
     @passant = nil
-    puts
     computer_to_play
+    puts
     print "> First_player: "
     @first_player = gets.chomp
     @first_player = "White" if @first_player.length == 0
@@ -104,11 +104,13 @@ class Chess
   end
   
   def computer_to_play
+    puts
     puts "Do you want computer to play?(y/n)"
     @comp = gets.chomp.downcase
     @comp = true if @comp == "y"
     @comp = false if @comp == "n"
     computer_to_play unless @comp == true || @comp == false
+    clear
   end
 
   def make_board
@@ -433,6 +435,15 @@ class Chess
     end
     
     make_board
+    if enemies.length == 1
+      enemy_king.moves.each do |move|
+        danger = is_it_in_danger?(move, game, [])
+        break unless danger
+        if move == enemy_king.moves.last
+          return winning(nil, "Drown!")
+        end
+      end
+    end
     if is_it_in_danger?(king.pos, enemies, []) &&
         (@comp == false ||
         @comp == true && player == 1)
