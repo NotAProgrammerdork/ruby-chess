@@ -82,12 +82,18 @@ class Chess
     @black_left_rook = true; @black_right_rook = true
     @passant = nil
     puts
+    computer_to_play
     print "> First_player: "
     @first_player = gets.chomp
     @first_player = "White" if @first_player.length == 0
-    print "> Second_player: "
-    @second_player = gets.chomp
-    @second_player = "Black" if @second_player.length == 0
+    if @comp
+      puts "> Second_player: Computer"
+      @second_player = "Computer"
+    else
+      print "> Second_player: "
+      @second_player = gets.chomp
+      @second_player = "Black" if @second_player.length == 0
+    end
     puts
     puts "\"save\" to save the game"
     puts "\"over\" to finish game by time"
@@ -95,6 +101,14 @@ class Chess
     gets
     clear
     play(1)
+  end
+  
+  def computer_to_play
+    puts "Do you want computer to play?(y/n)"
+    @comp = gets.chomp.downcase
+    @comp = true if @comp == "y"
+    @comp = false if @comp == "n"
+    computer_to_play unless @comp == true || @comp == false
   end
 
   def make_board
@@ -189,29 +203,37 @@ class Chess
     print "> #{name}"
     print name == color.capitalize ? "\n" : " (#{color.capitalize})\n"
     print "   from: "
-    from = gets.chomp.strip.downcase
-    if from == "leave" || from == "over" || from == "save"
-      return get_input(player, from)
+    
+    if name == "Computer"
+      piece = computer_piece(color, my_king, enemy_pieces)
+      from = piece.pos
+      print Array("a".."h")[from[1]]
+      puts [8,7,6,5,4,3,2,1][from[0]]
+    else
+      from = gets.chomp.strip.downcase
+      if from == "leave" || from == "over" || from == "save"
+        return get_input(player, from)
+      end
+      from = get_input(player, from)
+
+      if from[0].nil? || from[1].nil?
+        return error(player, "That piece doesn't exist")
+      end
+    
+      piece = @board[from[0]][from[1]]
+
+      return error(player, "That piece doesn't exist") if piece == "-"
+      return error(player, "It isn't your color") unless piece.color == color
+
+      if is_it_in_danger?(my_king.pos, enemy_pieces, []) &&
+         !@saviors.include?(piece)
+
+        return error(player, "Your king is in check!")
+      end
+      piece.set_moves
+      filter_moves(piece, color)
     end
-    from = get_input(player, from)
     
-    if from[0].nil? || from[1].nil?
-      return error(player, "That piece doesn't exist")
-    end
-    
-    piece = @board[from[0]][from[1]]
-    
-    return error(player, "That piece doesn't exist") if piece == "-"
-    return error(player, "It isn't your color") unless piece.color == color
-    
-    if is_it_in_danger?(my_king.pos, enemy_pieces, []) &&
-       !@saviors.include?(piece)
-      
-      return error(player, "Your king is in check!")
-    end
-    
-    piece.set_moves
-    filter_moves(piece, color)
     check_if_pawn_can_move_two(piece) if piece.class == Pawn
     prepare_king_for_castling(piece) if piece.class == King
     
@@ -226,10 +248,57 @@ class Chess
     end
     
     print "   to: "
-    to = get_input(player, gets.chomp.downcase)
-    return error(player, "Wrong movement") unless piece.moves.include?(to)
+    if name == "Computer"
+      to = computer_to(piece, my_king, enemy_pieces)
+      print Array("a".."h")[to[1]]
+      puts [8,7,6,5,4,3,2,1][to[0]]
+    else
+      to = get_input(player, gets.chomp.downcase)
+      return error(player, "Wrong movement") unless piece.moves.include?(to)
+    end
     
     change_position(player, my_king, enemy_pieces, piece, from, to, enemy_king, game)
+  end
+  
+  def computer_piece(color, my_king, enemy_pieces)
+    from = []
+    from << Array(0..7).sample << Array(0..7).sample
+    piece = @board[from[0]][from[1]]
+    if piece == "-" ||
+        piece.color != color ||
+        is_it_in_danger?(my_king.pos, enemy_pieces, []) &&
+        !@saviors.include?(piece)
+      
+      return computer_piece(color, my_king, enemy_pieces)
+    end
+    piece.set_moves
+    filter_moves(piece, color)
+    return computer_piece(color, my_king, enemy_pieces) if piece.moves.empty?
+    piece
+  end
+  
+  def computer_to(piece, my_king, enemy_pieces)
+    to = piece.moves.sample
+    backup_pos = piece.pos.dup
+    backup_moves = piece.moves.dup
+    piece.pos = to
+    piece.set_moves
+    make_board
+    if is_it_in_danger?(my_king.pos, enemy_pieces, [])
+      piece.pos = backup_pos
+      piece.moves.clear
+      backup_moves.each do |move|
+        piece.moves << move
+      end
+      make_board
+      return computer_to(piece, my_king, enemy_pieces)
+    end
+    piece.pos = backup_pos
+    backup_moves.each do |move|
+      piece.moves << move
+    end
+    make_board
+    to
   end
   
   def check_if_pawn_can_move_two(piece)
@@ -364,7 +433,10 @@ class Chess
     end
     
     make_board
-    if is_it_in_danger?(king.pos, enemies, [])
+    if is_it_in_danger?(king.pos, enemies, []) &&
+        (@comp == false ||
+        @comp == true && player == 1)
+      
       piece.pos = from
       piece.set_moves
       if eaten
@@ -424,6 +496,7 @@ class Chess
       end
     end
     
+    gets if @comp == true && player == 2
     clear
     play(player == 1 ? 2 : 1, !@dangers.empty?)
   end
@@ -437,7 +510,11 @@ class Chess
     puts "> Rook    > Queen"
     puts
     print "Pawn => "
-    option = gets.chomp.downcase
+    if @comp && player == 2
+      option = ["knight", "bishop", "rook", "queen"].sample
+    else
+      option = gets.chomp.downcase
+    end
     case option
     when "knight"
       new_piece = Knight.new(piece.color, piece.pos)
@@ -518,12 +595,18 @@ class Chess
         piece.moves.clear unless is_empty?([piece.pos[0]-1,piece.pos[1]])
         piece.moves << [piece.pos[0]-1,piece.pos[1]+1] if is_enemy?("black",[piece.pos[0]-1,piece.pos[1]+1],board)
         piece.moves << [piece.pos[0]-1,piece.pos[1]-1] if is_enemy?("black",[piece.pos[0]-1,piece.pos[1]-1],board)
-        piece.moves << [piece.pos[0]-2,piece.pos[1]] if first_move
+        
+        if first_move && @board[piece.pos[0]-2][piece.pos[1]] == "-"
+          piece.moves << [piece.pos[0]-2,piece.pos[1]]
+        end
       else
         piece.moves.clear unless is_empty?([piece.pos[0]+1,piece.pos[1]])
         piece.moves << [piece.pos[0]+1,piece.pos[1]+1] if is_enemy?("white",[piece.pos[0]+1,piece.pos[1]+1],board)
         piece.moves << [piece.pos[0]+1,piece.pos[1]-1] if is_enemy?("white",[piece.pos[0]+1,piece.pos[1]-1],board)
-        piece.moves << [piece.pos[0]+2,piece.pos[1]] if first_move
+        
+        if first_move && @board[piece.pos[0]+2][piece.pos[1]] == "-"
+          piece.moves << [piece.pos[0]+2,piece.pos[1]]
+        end
       end
     
     elsif piece.class == Bishop
