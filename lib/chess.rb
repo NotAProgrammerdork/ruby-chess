@@ -1,3 +1,4 @@
+require 'yaml'
 require_relative 'pawn.rb'
 require_relative 'knight.rb'
 require_relative 'bishop.rb'
@@ -8,6 +9,69 @@ require_relative 'king.rb'
 class Chess
   def initialize
     clear
+    puts "chess"
+    puts
+    puts "Do you want to load a game?(y/n)"
+    load_game = gets.chomp.downcase
+    clear
+    return initialize unless load_game == "y" || load_game == "n"
+    if load_game == "y"
+      puts
+      savings = Dir.entries("saves")
+      savings.select! {|save| save[-5..] == ".yaml"}
+
+      puts "Current savefiles: "
+      if savings.empty?
+        puts "  - No current savefiles"
+        gets
+        clear
+      else
+        savings.each do |saving|
+          name = saving[0...-5]
+          puts "  - " + name
+        end
+        puts
+      end
+      
+      unless savings.empty?
+        puts "Which file?"
+        savefile = gets.chomp.downcase + ".yaml"
+        return initialize unless savings.include?(savefile)
+        savefile = File.open("saves/" + savefile)
+      
+        content = YAML.load(savefile)
+        @points1 = content[:points][0]
+        @points2 = content[:points][1]
+        @dom_black = content[:dom][0]
+        @dom_white = content[:dom][1]
+        @dangers = content[:attack][0]
+        @saviors = content[:attack][1]
+        @white_castling = content[:castling][0]
+        @black_castling = content[:castling][1]
+        @white_left_rook = content[:white_rooks][0]
+        @white_right_rook = content[:white_rooks][1]
+        @black_left_rook = content[:black_rooks][0]
+        @black_right_rook = content[:black_rooks][1]
+        @passant = content[:passant]
+        @first_player = content[:names][0]
+        @second_player = content[:names][1]
+        @white_king = content[:kings][0]
+        @black_king = content[:kings][1]
+        @white_pieces = content[:pieces][0]
+        @black_pieces = content[:pieces][1]
+        make_board
+        
+        savefile.close
+        clear
+        puts
+        puts "\"save\" to save the game"
+        puts "\"over\" to finish game by time"
+        puts "\"leave\" to leave"
+        gets
+        clear
+        return play(content[:current_player])
+      end
+    end
     each_piece
     make_board
     @points1 = 0; @points2 = 0
@@ -17,7 +81,6 @@ class Chess
     @white_left_rook = true; @white_right_rook = true
     @black_left_rook = true; @black_right_rook = true
     @passant = nil
-    puts "chess"
     puts
     print "> First_player: "
     @first_player = gets.chomp
@@ -26,6 +89,7 @@ class Chess
     @second_player = gets.chomp
     @second_player = "Black" if @second_player.length == 0
     puts
+    puts "\"save\" to save the game"
     puts "\"over\" to finish game by time"
     puts "\"leave\" to leave"
     gets
@@ -125,7 +189,11 @@ class Chess
     print "> #{name}"
     print name == color.capitalize ? "\n" : " (#{color.capitalize})\n"
     print "   from: "
-    from = get_input(player, gets.chomp.strip.downcase)
+    from = gets.chomp.strip.downcase
+    if from == "leave" || from == "over" || from == "save"
+      return get_input(player, from)
+    end
+    from = get_input(player, from)
     
     if from[0].nil? || from[1].nil?
       return error(player, "That piece doesn't exist")
@@ -221,13 +289,15 @@ class Chess
         winning(1, "#{@second_player} leaves")
       end
     elsif input == "over"
-      if @points1 > @points2
+      if @points1 > @points2split
         winning(1, "Time is over")
       elsif @points2 > @points1
         winning(2, "Time is over")
       else
         winning(nil, "Time is over")
       end
+    elsif input == "save"
+      save(player)
     else
       input = input.split ""
       temp = input[0]
@@ -359,7 +429,7 @@ class Chess
   end
   
   def promotion(player, piece, error=false)
-    system "cls"
+    clear
     puts
     puts (error ? "  Incorrect piece" : "  Pawn promotion")
     puts
@@ -699,6 +769,45 @@ class Chess
       end
       make_board
     end
+  end
+  
+  def save(player)
+    clear
+    puts "Type a filename to save in a new file or in an existing one"
+    puts
+    savings = Dir.entries("saves")
+    savings.select! {|save| save[-5..] == ".yaml"}
+
+    puts "Current savefiles: "
+    if savings.empty?
+      puts "  - No current savefiles"
+    else
+      savings.each do |saving|
+        name = saving[0...-5]
+        puts "  - " + name
+      end
+    end
+    puts
+
+    print "> "
+    input = gets.chomp.downcase + ".yaml"
+
+    savefile = File.open("saves/" + input, "w+")
+    content = {
+      points: [@points1, @points2],
+      dom: [@dom_black, @dom_white],
+      attack: [@dangers, @saviors],
+      castling: [@white_castling, @black_castling],
+      white_rooks: [@white_left_rook, @white_right_rook],
+      black_rooks: [@black_left_rook, @black_right_rook],
+      passant: @passant,
+      names: [@first_player, @second_player],
+      kings: [@white_king, @black_king],
+      pieces: [@white_pieces, @black_pieces],
+      current_player: player
+      }
+    savefile.write(YAML.dump(content))
+    savefile.close
   end
   
   def clear
