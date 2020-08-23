@@ -152,9 +152,7 @@ class Chess
       end
       num_row -= 1
     end
-    puts
-    puts "      a b c d e f g h"
-    puts
+    puts "\n      a b c d e f g h\n"
   end
 
   def declare_game
