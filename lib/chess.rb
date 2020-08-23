@@ -89,15 +89,8 @@ class Chess
   end
   
   def regular_game
-    each_piece
+    declare_game
     make_board
-    @points1 = 0; @points2 = 0
-    @dom_black = []; @dom_white = []
-    @dangers = []; @saviors = []
-    @white_castling = true; @black_castling = true
-    @white_left_rook = true; @white_right_rook = true
-    @black_left_rook = true; @black_right_rook = true
-    @passant = nil
     computer_to_play
     puts
     print "> First_player: "
@@ -120,8 +113,7 @@ class Chess
   end
   
   def computer_to_play
-    puts
-    puts "Do you want computer to play?(y/n)"
+    puts "\nDo you want computer to play?(y/n)"
     @comp = gets.chomp.downcase
     @comp = true if @comp == "y"
     @comp = false if @comp == "n"
@@ -165,7 +157,7 @@ class Chess
     puts
   end
 
-  def each_piece
+  def declare_game
     @white_king = King.new("white", [7,4])
     @white_pieces = [Pawn.new("white", [6,0]), Pawn.new("white", [6,1]),
                      Pawn.new("white", [6,2]), Pawn.new("white", [6,3]),
@@ -185,6 +177,14 @@ class Chess
                      Bishop.new("black", [0,2]), Bishop.new("black", [0,5]),
                      Rook.new("black", [0,0]), Rook.new("black", [0,7]),
                      Queen.new("black", [0,3]), @black_king]
+    
+    @points1 = 0; @points2 = 0
+    @dom_black = []; @dom_white = []
+    @dangers = []; @saviors = []
+    @white_castling = true; @black_castling = true
+    @white_left_rook = true; @white_right_rook = true
+    @black_left_rook = true; @black_right_rook = true
+    @passant = nil
   end
   
   def play(player, check=false)
