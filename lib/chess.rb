@@ -9,7 +9,11 @@ require_relative 'king.rb'
 class Chess
   def initialize
     clear
-    puts "chess"
+    puts "   ____ _"
+    puts "  / ___| |__   ___  ___ ___"
+    puts " | |   | '_ \\ / _ \\/ __/ __|"
+    puts " | |___| | | |  __/\\__ \\__ \\"
+    puts "  \\____|_| |_|\\___||___/___/"
     puts
     puts "Do you want to load a game?(y/n)"
     load_game = gets.chomp.downcase
