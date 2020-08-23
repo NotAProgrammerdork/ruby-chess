@@ -13,69 +13,82 @@ class Chess
     puts "  / ___| |__   ___  ___ ___"
     puts " | |   | '_ \\ / _ \\/ __/ __|"
     puts " | |___| | | |  __/\\__ \\__ \\"
-    puts "  \\____|_| |_|\\___||___/___/"
+    puts "  \\____|_| |_|\\___||___/___/\n\n"
+    puts "      <<Press enter>>"
+    gets
+    load_game? == "y" ? load_game : regular_game
+  end
+  
+  def load_game?
+    clear
     puts
     puts "Do you want to load a game?(y/n)"
-    load_game = gets.chomp.downcase
-    clear
-    return initialize unless load_game == "y" || load_game == "n"
-    if load_game == "y"
-      puts
-      savings = Dir.entries("saves")
-      savings.select! {|save| save[-5..] == ".yaml"}
-
-      puts "Current savefiles: "
-      if savings.empty?
-        puts "  - No current savefiles"
-        gets
-        clear
-      else
-        savings.each do |saving|
-          name = saving[0...-5]
-          puts "  - " + name
-        end
-        puts
-      end
-      
-      unless savings.empty?
-        puts "Which file?"
-        savefile = gets.chomp.downcase + ".yaml"
-        return initialize unless savings.include?(savefile)
-        savefile = File.open("saves/" + savefile)
-      
-        content = YAML.load(savefile)
-        @points1 = content[:points][0]
-        @points2 = content[:points][1]
-        @dom_black = content[:dom][0]
-        @dom_white = content[:dom][1]
-        @dangers = content[:attack][0]
-        @saviors = content[:attack][1]
-        @white_castling = content[:castling][0]
-        @black_castling = content[:castling][1]
-        @white_left_rook = content[:white_rooks][0]
-        @white_right_rook = content[:white_rooks][1]
-        @black_left_rook = content[:black_rooks][0]
-        @black_right_rook = content[:black_rooks][1]
-        @passant = content[:passant]
-        @first_player = content[:names][0]
-        @second_player = content[:names][1]
-        @white_king = content[:kings][0]
-        @black_king = content[:kings][1]
-        @white_pieces = content[:pieces][0]
-        @black_pieces = content[:pieces][1]
-        make_board
-        
-        savefile.close
-        clear
-        puts
-        puts "\"save\" to save the game"
-        puts "\"over\" to finish game by time"
-        puts "\"leave\" to leave"
-        gets
-        clear
-        return play(content[:current_player])
-      end
+    load_s = gets.chomp.downcase
+    if load_s == "y" || load_s == "n"
+      clear
+      load_s
+    else
+      load_game?
     end
+  end
+  
+  def load_game
+    puts
+    Dir.mkdir("saves") unless Dir.exist?("saves")
+    savings = Dir.entries("saves").select! {|save| save[-5..] == ".yaml"}
+
+    puts "Current savefiles: "
+    if savings.empty?
+      puts "  - No current savefiles\n"
+      gets
+      clear
+    else
+      savings.each do |saving|
+        name = saving[0...-5]
+        puts "  - " + name
+      end
+      puts
+    end
+
+    return regular_game if savings.empty?
+    puts "Which file?"
+    savefile = gets.chomp.downcase + ".yaml"
+    return load_game? unless savings.include?(savefile)
+    savefile = File.open("saves/" + savefile)
+
+    content = YAML.load(savefile)
+    @points1 = content[:points][0]
+    @points2 = content[:points][1]
+    @dom_black = content[:dom][0]
+    @dom_white = content[:dom][1]
+    @dangers = content[:attack][0]
+    @saviors = content[:attack][1]
+    @white_castling = content[:castling][0]
+    @black_castling = content[:castling][1]
+    @white_left_rook = content[:white_rooks][0]
+    @white_right_rook = content[:white_rooks][1]
+    @black_left_rook = content[:black_rooks][0]
+    @black_right_rook = content[:black_rooks][1]
+    @passant = content[:passant]
+    @first_player = content[:names][0]
+    @second_player = content[:names][1]
+    @white_king = content[:kings][0]
+    @black_king = content[:kings][1]
+    @white_pieces = content[:pieces][0]
+    @black_pieces = content[:pieces][1]
+    make_board
+
+    savefile.close
+    clear
+    puts "\n\"save\" to save the game"
+    puts "\"over\" to finish game by time"
+    puts "\"leave\" to leave\n"
+    gets
+    clear
+    return play(content[:current_player])
+  end
+  
+  def regular_game
     each_piece
     make_board
     @points1 = 0; @points2 = 0
@@ -98,8 +111,7 @@ class Chess
       @second_player = gets.chomp
       @second_player = "Black" if @second_player.length == 0
     end
-    puts
-    puts "\"save\" to save the game"
+    puts "\n\"save\" to save the game"
     puts "\"over\" to finish game by time"
     puts "\"leave\" to leave"
     gets
