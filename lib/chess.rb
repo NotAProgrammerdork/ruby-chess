@@ -143,14 +143,14 @@ class Chess
 
   def print_board
     puts
-    num_row = 8
+    row_num = 8
     @board.each do |row|
-      print "  #{num_row}   "
+      print "  #{row_num}   "
       row.each_with_index do |square, idx|
         print square
-        print (idx == row.length-1) ? "\n" : " "
+        print (idx == row.length-1 ? "\n" : " ")
       end
-      num_row -= 1
+      row_num -= 1
     end
     puts "\n      a b c d e f g h\n"
   end
@@ -174,7 +174,7 @@ class Chess
                      Knight.new("black", [0,1]), Knight.new("black", [0,6]),
                      Bishop.new("black", [0,2]), Bishop.new("black", [0,5]),
                      Rook.new("black", [0,0]), Rook.new("black", [0,7]),
-                     Queen.new("black", [0,3]), @black_king]
+                     Queen.new("black", [5,6]), @black_king]
     
     @points1 = 0; @points2 = 0
     @dom_black = []; @dom_white = []
@@ -189,22 +189,22 @@ class Chess
     make_board
     print_board
     if player == 1
-      name = @first_player
-      color = "white"
-      game = @white_pieces
-      enemy_pieces = @black_pieces
-      my_king = @white_king
-      enemy_king = @black_king
+      @name = @first_player
+      @color = "white"
+      @game = @white_pieces
+      @enemy_pieces = @black_pieces
+      @my_king = @white_king
+      @enemy_king = @black_king
     else
-      name = @second_player
-      color = "black"
-      game = @black_pieces
-      enemy_pieces = @white_pieces
-      my_king = @black_king
-      enemy_king = @white_king
+      @name = @second_player
+      @color = "black"
+      @game = @black_pieces
+      @enemy_pieces = @white_pieces
+      @my_king = @black_king
+      @enemy_king = @white_king
     end
     
-    puts "-king in check-" if check
+    puts "\n-king in check-" if check
     dom = (player == 1 ? @dom_black : @dom_white)
     points = (player == 1 ? @points1 : @points2)
     dom.each_with_index do |piece, idx|
@@ -215,43 +215,42 @@ class Chess
       end
       print (idx+1 % 5 == 0) ? "\n" : " "
     end
-    puts
-    print "> #{name}"
-    print name == color.capitalize ? "\n" : " (#{color.capitalize})\n"
+    print "\n> #{@name}"
+    print (@name == @color.capitalize ? "\n" : " (#{@color.capitalize})\n")
     print "   from: "
     
-    if name == "Computer"
-      piece = computer_piece(color, my_king, enemy_pieces)
-      from = piece.pos
-      print Array("a".."h")[from[1]]
-      puts [8,7,6,5,4,3,2,1][from[0]]
+    if @name == "Computer"
+      piece = computed_piece
+      @from = piece.pos
+      print Array("a".."h")[@from[1]]
+      puts [8,7,6,5,4,3,2,1][@from[0]]
     else
-      from = gets.chomp.strip.downcase
-      if from == "leave" || from == "over" || from == "save"
-        return get_input(player, from)
+      @from = gets.chomp.strip.downcase
+      if @from == "leave" || @from == "over" || @from == "save"
+        return get_input(player, @from)
       end
-      from = get_input(player, from)
+      @from = get_input(player, @from)
 
-      if from[0].nil? || from[1].nil?
+      if @from[0].nil? || @from[1].nil?
         return error(player, "That piece doesn't exist")
       end
     
-      piece = @board[from[0]][from[1]]
+      piece = @board[@from[0]][@from[1]]
 
       return error(player, "That piece doesn't exist") if piece == "-"
-      return error(player, "It isn't your color") unless piece.color == color
+      return error(player, "It isn't your color") unless piece.color == @color
 
-      if is_it_in_danger?(my_king.pos, enemy_pieces, []) &&
+      if is_it_in_danger? &&
          !@saviors.include?(piece)
 
         return error(player, "Your king is in check!")
       end
       piece.set_moves
-      filter_moves(piece, color)
+      filter_moves(piece)
     end
     
     check_if_pawn_can_move_two(piece) if piece.class == Pawn
-    prepare_king_for_castling(piece) if piece.class == King
+    prepare_king_for_castling if piece.class == King
     
     unless @passant.nil? || @passant.color == "color"
       if @passant.pos == [piece.pos[0], piece.pos[1]+1]
@@ -264,70 +263,72 @@ class Chess
     end
     
     print "   to: "
-    if name == "Computer"
-      to = computer_to(piece, my_king, enemy_pieces)
-      print Array("a".."h")[to[1]]
-      puts [8,7,6,5,4,3,2,1][to[0]]
+    if @name == "Computer"
+      computed_to(piece)
+      print Array("a".."h")[@to[1]]
+      puts [8,7,6,5,4,3,2,1][@to[0]]
     else
-      to = get_input(player, gets.chomp.downcase)
-      return error(player, "Wrong movement") unless piece.moves.include?(to)
+      @to = gets.chomp.downcase
+      if @to == "leave" || @to == "over" || @to == "save"
+        return get_input(player, @to)
+      end
+      @to = get_input(player, @to)
+      return error(player, "Wrong movement") unless piece.moves.include?(@to)
     end
     
-    change_position(player, my_king, enemy_pieces, piece, from, to, enemy_king, game)
+    change_position(player, piece)
   end
   
-  def computer_piece(color, my_king, enemy_pieces)
+  def computed_piece
     from = []
     from << Array(0..7).sample << Array(0..7).sample
     piece = @board[from[0]][from[1]]
     if piece == "-" ||
-        piece.color != color ||
-        is_it_in_danger?(my_king.pos, enemy_pieces, []) &&
+        piece.color != @color ||
+        is_it_in_danger? &&
         !@saviors.include?(piece)
       
-      return computer_piece(color, my_king, enemy_pieces)
+      return computed_piece
     end
     piece.set_moves
-    filter_moves(piece, color)
-    return computer_piece(color, my_king, enemy_pieces) if piece.moves.empty?
+    filter_moves(piece)
+    return computed_piece if piece.moves.empty?
     piece
   end
   
-  def computer_to(piece, my_king, enemy_pieces)
-    to = piece.moves.sample
+  def computed_to(piece)
+    @to = piece.moves.sample
     backup_pos = piece.pos.dup
     backup_moves = piece.moves.dup
-    piece.pos = to
+    piece.pos = @to
     piece.set_moves
     make_board
-    if is_it_in_danger?(my_king.pos, enemy_pieces, [])
+    if is_it_in_danger?
       piece.pos = backup_pos
       piece.moves.clear
       backup_moves.each do |move|
         piece.moves << move
       end
       make_board
-      return computer_to(piece, my_king, enemy_pieces)
+      return computed_to(piece)
     end
     piece.pos = backup_pos
     backup_moves.each do |move|
       piece.moves << move
     end
     make_board
-    to
   end
   
   def check_if_pawn_can_move_two(piece)
     if piece.color == "white" && piece.pos[0] == 6 ||
         piece.color == "black" && piece.pos[0] == 1
 
-      filter_moves(piece, piece.color, @board, true)
+      filter_moves(piece, @board, true)
     end
   end
   
-  def prepare_king_for_castling(piece)
-    bad_pieces = (piece.color == "white" ? @black_pieces : @white_pieces)
-    return if is_it_in_danger?(piece.pos, bad_pieces, [])
+  def prepare_king_for_castling
+    return if is_it_in_danger?
     
     if !@white_left_rook && !@white_right_rook
       @white_castling = false
@@ -335,33 +336,33 @@ class Chess
       @black_castling = false
     end
 
-    if piece.color == "white" && @white_castling
+    if @color == "white" && @white_castling
       if @white_right_rook &&
-          is_empty?([7,5]) && !is_it_in_danger?([7,5],bad_pieces,[]) && 
-          is_empty?([7,6]) && !is_it_in_danger?([7,6],bad_pieces,[])
+          is_empty?([7,5]) && !is_it_in_danger?([7,5]) && 
+          is_empty?([7,6]) && !is_it_in_danger?([7,6])
 
-        piece.moves << [7,6]
+        @my_king.moves << [7,6]
       end
       if @white_left_rook &&
           is_empty?([7,1]) &&
-          is_empty?([7,2]) && !is_it_in_danger?([7,2],bad_pieces,[]) &&
-          is_empty?([7,3]) && !is_it_in_danger?([7,3],bad_pieces,[])
+          is_empty?([7,2]) && !is_it_in_danger?([7,2]) &&
+          is_empty?([7,3]) && !is_it_in_danger?([7,3])
 
-        piece.moves << [7,2]
+        @my_king.moves << [7,2]
       end
-    elsif piece.color == "black" && @black_castling
+    elsif @color == "black" && @black_castling
       if @black_right_rook &&
-          is_empty?([0,5]) && !is_it_in_danger?([0,5],bad_pieces,[]) &&
-          is_empty?([0,6]) && !is_it_in_danger?([0,6],bad_pieces,[])
+          is_empty?([0,5]) && !is_it_in_danger?([0,5]) &&
+          is_empty?([0,6]) && !is_it_in_danger?([0,6])
           
-        piece.moves << [0,6]
+        @my_king.moves << [0,6]
       end
       if @black_left_rook &&
           is_empty?([0,1]) &&
-          is_empty?([0,2]) && !is_it_in_danger?([0,2],bad_pieces,[]) &&
-          is_empty?([0,3]) && !is_it_in_danger?([0,3],bad_pieces,[])
+          is_empty?([0,2]) && !is_it_in_danger?([0,2]) &&
+          is_empty?([0,3]) && !is_it_in_danger?([0,3])
 
-        piece.moves << [0,2]
+        @my_king.moves << [0,2]
       end
     end
   end
@@ -369,12 +370,12 @@ class Chess
   def get_input(player, input)
     if input == "leave"
       if player == 1
-        winning(2, "#{@first_player} leaves")
+        winning(2, "#{@name} leaves")
       else
-        winning(1, "#{@second_player} leaves")
+        winning(1, "#{@name} leaves")
       end
     elsif input == "over"
-      if @points1 > @points2split
+      if @points1 > @points2
         winning(1, "Time is over")
       elsif @points2 > @points1
         winning(2, "Time is over")
@@ -398,24 +399,24 @@ class Chess
     play(player)
   end
 
-  def change_position(player, king, enemies, piece, from, to, enemy_king, game)
-    square = @board[to[0]][to[1]]
+  def change_position(player, piece)
+    square = @board[@to[0]][@to[1]]
     unless @passant.nil?
-      if to == [piece.pos[0]-1, piece.pos[1]+1] ||
-          to == [piece.pos[0]+1, piece.pos[1]+1]
+      if @to == [piece.pos[0]-1, piece.pos[1]+1] ||
+          @to == [piece.pos[0]+1, piece.pos[1]+1]
         
         square = @board[piece.pos[0]][piece.pos[1]+1]
-      elsif to == [piece.pos[0]-1, piece.pos[1]-1] ||
-          to == [piece.pos[0]+1, piece.pos[1]-1]
+      elsif @to == [piece.pos[0]-1, piece.pos[1]-1] ||
+          @to == [piece.pos[0]+1, piece.pos[1]-1]
         
         square = @board[piece.pos[0]][piece.pos[1]-1]
       end
     end
-    piece.pos = to
+    piece.pos = @to
     piece.set_moves
     eaten = false
     
-    execute_castling(piece, from, to) if piece.class == King || piece.class == Rook
+    execute_castling(piece) if piece.class == King || piece.class == Rook
     
     unless square == "-"
       if player == 1
@@ -449,20 +450,20 @@ class Chess
     end
     
     make_board
-    if enemies.length == 1
-      enemy_king.moves.each do |move|
-        danger = is_it_in_danger?(move, game, [])
+    if @enemy_pieces.length == 1
+      @enemy_king.moves.each do |move|
+        danger = is_it_in_danger?(move, @game)
         break unless danger
-        if move == enemy_king.moves.last
+        if move == @enemy_king.moves.last
           return winning(nil, "Drown!")
         end
       end
     end
-    if is_it_in_danger?(king.pos, enemies, []) &&
+    if is_it_in_danger? &&
         (@comp == false ||
         @comp == true && player == 1)
       
-      piece.pos = from
+      piece.pos = @from
       piece.set_moves
       if eaten
         if player == 1
@@ -498,15 +499,15 @@ class Chess
     end
     
     @dangers.clear; @saviors.clear
-    check_checkmate(enemy_king, game)
+    check_checkmate
     return winning(player, "Checkmate!") if @saviors.empty? && !@dangers.empty?
     unless @dangers.empty?
-      @dangers.each {|danger| filter_moves(danger, danger.color)}
+      @dangers.each {|danger| filter_moves(danger)}
     end
     
     if piece.class == Pawn
-      if piece.color == "white" && to[0] == 0 ||
-          piece.color == "black" && to[0] == 7
+      if piece.color == "white" && @to[0] == 0 ||
+          piece.color == "black" && @to[0] == 7
         #return promotion(player, piece)
         promotion(player, piece)
       end
@@ -514,8 +515,8 @@ class Chess
     
     @passant = nil if @passant
     if piece.class == Pawn
-      if to == [from[0]-2, from[1]] ||
-          to == [from[0]+2, from[1]]
+      if @to == [@from[0]-2, @from[1]] ||
+          @to == [@from[0]+2, @from[1]]
       
         @passant = piece
       end
@@ -528,12 +529,9 @@ class Chess
   
   def promotion(player, piece, error=false)
     clear
-    puts
-    puts (error ? "  Incorrect piece" : "  Pawn promotion")
-    puts
+    puts "\n  " + (error ? "Incorrect piece" : "Pawn promotion") + "\n"
     puts "> Knight  > Bishop"
-    puts "> Rook    > Queen"
-    puts
+    puts "> Rook    > Queen\n"
     print "Pawn => "
     if @comp && player == 2
       option = ["knight", "bishop", "rook", "queen"].sample
@@ -553,32 +551,31 @@ class Chess
       return promotion(player, piece, true)
     end
     #new_piece.filter_moves
-    army = (piece.color == "white" ? @white_pieces : @black_pieces)
-    army.delete(piece)
-    army << new_piece
+    @game.delete(piece)
+    @game << new_piece
     make_board
     #clear
     #play(player == 1 ? 2 : 1)
   end
   
-  def execute_castling(piece, from, to)
+  def execute_castling(piece)
     if piece.class == King
       if piece.color == "white" && @white_castling
-        move_rook(to, 7)
+        move_rook(7)
         @white_castling = false
       elsif piece.color == "black" && @black_castling
-        move_rook(to, 0)
+        move_rook(0)
         @black_castling = false
       end
     elsif piece.class == Rook
       if piece.color == "white"
-        if from == [7,7]
+        if @from == [7,7]
           @white_right_rook = false
-        elsif from == [7,0]
+        elsif @from == [7,0]
           @white_left_rook = false
         end
       else
-        if from == [0,7]
+        if @from == [0,7]
           @black_right_rook = false
         elsif from == [0,0]
           @black_left_rook = false
@@ -587,47 +584,37 @@ class Chess
     end
   end
   
-  def move_rook(to, row)
-    if to == [row,6]
+  def move_rook(row)
+    if @to == [row,6]
       rook = @board[row][7]
       rook.pos = [row,5]
       rook.set_moves
-    elsif to == [row,2]
+    elsif @to == [row,2]
       rook = @board[row][0]
       rook.pos = [row,3]
       rook.set_moves
     end
   end
   
-  def filter_moves(piece, color, board=@board, first_move=false)
+  def filter_moves(piece, board=@board, first_move=false)
     piece.moves.select! do |move|
       (0..7).include?(move[0]) &&
       (0..7).include?(move[1])
     end
-    
-=begin
-    if piece.class == King
-      bad_guys = (player == 1) ? @black_pieces : @white_pieces
-      bad_guys.each do |enemy|
-        enemy.moves.each do |move|
-          piece.moves.delete(move) if piece.moves.include?(move)
-        end
-      end
-=end
 
     if piece.class == Pawn && !piece.moves.empty?
-      if color == "white"
+      if piece.color == "white"
         piece.moves.clear unless is_empty?([piece.pos[0]-1,piece.pos[1]])
-        piece.moves << [piece.pos[0]-1,piece.pos[1]+1] if is_enemy?("black",[piece.pos[0]-1,piece.pos[1]+1],board)
-        piece.moves << [piece.pos[0]-1,piece.pos[1]-1] if is_enemy?("black",[piece.pos[0]-1,piece.pos[1]-1],board)
+        piece.moves << [piece.pos[0]-1,piece.pos[1]+1] if is_enemy?([piece.pos[0]-1,piece.pos[1]+1],board)
+        piece.moves << [piece.pos[0]-1,piece.pos[1]-1] if is_enemy?([piece.pos[0]-1,piece.pos[1]-1],board)
         
         if first_move && @board[piece.pos[0]-2][piece.pos[1]] == "-"
           piece.moves << [piece.pos[0]-2,piece.pos[1]]
         end
       else
         piece.moves.clear unless is_empty?([piece.pos[0]+1,piece.pos[1]])
-        piece.moves << [piece.pos[0]+1,piece.pos[1]+1] if is_enemy?("white",[piece.pos[0]+1,piece.pos[1]+1],board)
-        piece.moves << [piece.pos[0]+1,piece.pos[1]-1] if is_enemy?("white",[piece.pos[0]+1,piece.pos[1]-1],board)
+        piece.moves << [piece.pos[0]+1,piece.pos[1]+1] if is_enemy?([piece.pos[0]+1,piece.pos[1]+1],board)
+        piece.moves << [piece.pos[0]+1,piece.pos[1]-1] if is_enemy?([piece.pos[0]+1,piece.pos[1]-1],board)
         
         if first_move && @board[piece.pos[0]+2][piece.pos[1]] == "-"
           piece.moves << [piece.pos[0]+2,piece.pos[1]]
@@ -770,26 +757,25 @@ class Chess
       end
       
     end
-    
-    piece.moves.reject! {|move| is_ally?(color, move)}
+    piece.moves.reject! {|move| is_ally?(piece.color, move)}
   end
   
-  def is_enemy?(enemy_color, pos, board=@board)
+  def is_enemy?(pos, board=@board)
     enemy = false
     if (0..7).include?(pos[0]) &&
        (0..7).include?(pos[1]) &&
        board[pos[0]][pos[1]] != "-" &&
-       board[pos[0]][pos[1]].color == enemy_color
+       board[pos[0]][pos[1]].color != @color
       
       enemy = true
     end
     enemy
   end
   
-  def is_ally?(ally_color, pos, board=@board)
+  def is_ally?(color, pos, board=@board)
     ally = false
     if board[pos[0]][pos[1]] != "-" &&
-       board[pos[0]][pos[1]].color == ally_color
+       board[pos[0]][pos[1]].color == color
       
       ally = true
     end
@@ -813,9 +799,10 @@ class Chess
     gets
   end
   
-  def is_it_in_danger?(king_pos, enemies, dangers=@dangers)
-    enemies.each_with_index do |enemy, idx|
-      filter_moves(enemy, enemy.color)
+  def is_it_in_danger?(king_pos=@my_king.pos, enemy_pieces=@enemy_pieces, dangers=[])
+    enemy_pieces.each_with_index do |enemy, idx|
+      enemy.set_moves
+      filter_moves(enemy)
       enemy.moves.each do |move|
         if move == king_pos
           dangers << enemy
@@ -826,13 +813,12 @@ class Chess
     !dangers.empty?
   end
   
-  def check_checkmate(king, enemies)
-    filter_moves(king, king.color)
-    return unless is_it_in_danger?(king.pos, enemies, @dangers)
-    allies = (king.color == "white") ? @white_pieces : @black_pieces
-    allies.each_with_index do |ally, idx|
+  def check_checkmate
+    filter_moves(@enemy_king)
+    return unless is_it_in_danger?(@enemy_king.pos, @game, @dangers)
+    @enemy_pieces.each_with_index do |ally, idx|
       ally.set_moves
-      filter_moves(ally, king.color)
+      filter_moves(ally)
       
       pos_backup = []
       moves_backup = []
@@ -856,13 +842,13 @@ class Chess
       ally_moves_backup.each do |move|
         ally.pos = [move[0],move[1]]
         ally.set_moves
-        filter_moves(ally, king.color)
+        filter_moves(ally)
         make_board
         
         @dangers.each do |danger|
-          filter_moves(danger, king.color == "white" ? "black" : "white")
+          filter_moves(danger)
         end
-        choice = true unless is_it_in_danger?(king.pos, @dangers, [])
+        choice = true unless is_it_in_danger?(@enemy_king.pos, @dangers)
       end
       ally.pos = ally_pos_backup
       ally.moves.clear
@@ -881,10 +867,8 @@ class Chess
   
   def save(player)
     clear
-    puts "Type a filename to save in a new file or in an existing one"
-    puts
-    savings = Dir.entries("saves")
-    savings.select! {|save| save[-5..] == ".yaml"}
+    puts "Type a filename to save in a new file or in an existing one\n"
+    savings = Dir.entries("saves").select {|save| save[-5..] == ".yaml"}
 
     puts "Current savefiles: "
     if savings.empty?
@@ -895,9 +879,8 @@ class Chess
         puts "  - " + name
       end
     end
-    puts
 
-    print "> "
+    print "\n> "
     input = gets.chomp.downcase + ".yaml"
 
     savefile = File.open("saves/" + input, "w+")
