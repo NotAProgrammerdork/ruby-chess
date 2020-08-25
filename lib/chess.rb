@@ -131,14 +131,8 @@ class Chess
               ["-", "-", "-", "-", "-", "-", "-", "-"],
               ["-", "-", "-", "-", "-", "-", "-", "-"]]
 
-    @white_pieces.each do |piece|
-      pos = piece.pos
-      @board[pos[0]][pos[1]] = piece
-    end
-    @black_pieces.each do |piece|
-      pos = piece.pos
-      @board[pos[0]][pos[1]] = piece
-    end
+    @white_pieces.each {|piece| @board[piece.pos[0]][piece.pos[1]] = piece}
+    @black_pieces.each {|piece| @board[piece.pos[0]][piece.pos[1]] = piece}
   end
 
   def print_board
@@ -174,7 +168,7 @@ class Chess
                      Knight.new("black", [0,1]), Knight.new("black", [0,6]),
                      Bishop.new("black", [0,2]), Bishop.new("black", [0,5]),
                      Rook.new("black", [0,0]), Rook.new("black", [0,7]),
-                     Queen.new("black", [5,6]), @black_king]
+                     Queen.new("black", [0,3]), @black_king]
     
     @points1 = 0; @points2 = 0
     @dom_black = []; @dom_white = []
@@ -211,6 +205,7 @@ class Chess
     puts "\n-king in check-" if check
     dom = (player == 1 ? @dom_black : @dom_white)
     points = (player == 1 ? @points1 : @points2)
+    puts
     dom.each_with_index do |piece, idx|
       print piece
       if piece == dom.last
@@ -255,16 +250,7 @@ class Chess
     
     check_if_pawn_can_move_two(piece) if piece.class == Pawn
     prepare_king_for_castling if piece.class == King
-    
-    unless @passant.nil? || @passant.color == "color"
-      if @passant.pos == [piece.pos[0], piece.pos[1]+1]
-        piece.moves << [piece.pos[0]-1, piece.pos[1]+1] if @passant.color == "black"
-        piece.moves << [piece.pos[0]+1, piece.pos[1]+1] if @passant.color == "white"
-      elsif @passant.pos == [piece.pos[0], piece.pos[1]-1]
-        piece.moves << [piece.pos[0]-1, piece.pos[1]-1] if @passant.color == "black"
-        piece.moves << [piece.pos[0]+1, piece.pos[1]-1] if @passant.color == "white"
-      end
-    end
+    eat_passant(piece) unless @passant.nil? || @passant.color == "color"
     
     print "   to: "
     if @name == "Computer"
@@ -371,14 +357,21 @@ class Chess
     end
   end
   
+  def eat_passant(piece)
+    if @passant.pos == [piece.pos[0], piece.pos[1]+1]
+      piece.moves << [piece.pos[0]-1, piece.pos[1]+1] if @passant.color == "black"
+      piece.moves << [piece.pos[0]+1, piece.pos[1]+1] if @passant.color == "white"
+    elsif @passant.pos == [piece.pos[0], piece.pos[1]-1]
+      piece.moves << [piece.pos[0]-1, piece.pos[1]-1] if @passant.color == "black"
+      piece.moves << [piece.pos[0]+1, piece.pos[1]-1] if @passant.color == "white"
+    end
+  end
+  
   def get_input(player, input)
-    if input == "leave"
-      if player == 1
-        winning(2, "#{@name} leaves")
-      else
-        winning(1, "#{@name} leaves")
-      end
-    elsif input == "over"
+    case input
+    when "leave"
+      winning((player == 1 ? 2 : 1), "#{@name} leaves")
+    when "over"
       if @points1 > @points2
         winning(1, "Time is over")
       elsif @points2 > @points1
@@ -386,7 +379,7 @@ class Chess
       else
         winning(nil, "Time is over")
       end
-    elsif input == "save"
+    when "save"
       save(player)
     else
       input = input.split ""
@@ -410,57 +403,14 @@ class Chess
           @to == [@passant.pos[0]+1, @passant.pos[1]]
         square = @passant
       end
-=begin
-      if @to == [piece.pos[0]-1, piece.pos[1]+1] ||
-          @to == [piece.pos[0]+1, piece.pos[1]+1]
-        
-    p square
-    gets
-        square = @board[piece.pos[0]][piece.pos[1]+1]
-    p square
-    gets
-      elsif @to == [piece.pos[0]-1, piece.pos[1]-1] ||
-          @to == [piece.pos[0]+1, piece.pos[1]-1]
-        
-        square = @board[piece.pos[0]][piece.pos[1]-1]
-      end
-=end
     end
+    
     piece.pos = @to
     piece.set_moves
-    eaten = false
+    @eaten = false
     execute_castling(piece) if piece.class == King || piece.class == Rook
     
-    unless square == "-"
-      if player == 1
-        @points1 += square.value
-        
-        if square.class == Rook
-          if square.pos == [0,7]
-            @black_right_rook = false
-          elsif square.pos == [0,0]
-            @black_left_rook = false
-          end
-        end
-        
-        @black_pieces.delete(square)
-        @dom_black << square
-      else
-        @points2 += square.value
-        
-        if square.class == Rook
-          if square.pos == [7,7]
-            @white_right_rook = false
-          elsif square.pos == [7,0]
-            @white_left_rook = false
-          end
-        end
-        
-        @white_pieces.delete(square)
-        @dom_white << square
-      end
-      eaten = true
-    end
+    eat_piece(piece, square, player) unless square == "-"
     make_board
     if @enemy_pieces.length == 1
       @enemy_king.moves.each do |move|
@@ -477,35 +427,7 @@ class Chess
       
       piece.pos = @from
       piece.set_moves
-      if eaten
-        if player == 1
-          square = @dom_black.pop
-          @black_pieces << square
-          
-          if square.class == Rook
-            if square.pos == [0,7]
-              @black_right_rook = true
-            elsif square.pos == [0,0]
-              @black_left_rook = true
-            end
-          end
-          
-          @points1 -= square.value
-        else
-          square = @dom_white.pop
-          @white_pieces << square
-                    
-          if square.class == Rook
-            if square.pos == [7,7]
-              @white_right_rook = true
-            elsif square.pos == [7,0]
-              @white_left_rook = true
-            end
-          end
-          
-          @points2 -= square.value
-        end
-      end
+      reset_eating(piece, player) if @eaten
       make_board
       return error(player, "Your king will be in check!")
     end
@@ -513,9 +435,7 @@ class Chess
     @dangers.clear; @saviors.clear
     check_checkmate
     return winning(player, "Checkmate!") if @saviors.empty? && !@dangers.empty?
-    unless @dangers.empty?
-      @dangers.each {|danger| filter_moves(danger)}
-    end
+    @dangers.each {|danger| filter_moves(danger)} unless @dangers.empty?
     
     if piece.class == Pawn
       if piece.color == "white" && @to[0] == 0 ||
@@ -537,6 +457,67 @@ class Chess
     gets if @comp == true && player == 2
     clear
     play(player == 1 ? 2 : 1, !@dangers.empty?)
+  end
+  
+  def eat_piece(piece, square, player)
+    if player == 1
+      @points1 += square.value
+
+      if square.class == Rook
+        if square.pos == [0,7]
+          @black_right_rook = false
+        elsif square.pos == [0,0]
+          @black_left_rook = false
+        end
+      end
+
+      @black_pieces.delete(square)
+      @dom_black << square
+    else
+      @points2 += square.value
+
+      if square.class == Rook
+        if square.pos == [7,7]
+          @white_right_rook = false
+        elsif square.pos == [7,0]
+          @white_left_rook = false
+        end
+      end
+
+      @white_pieces.delete(square)
+      @dom_white << square
+    end
+    @eaten = true
+  end
+  
+  def reset_eating(piece, player)
+    if player == 1
+      square = @dom_black.pop
+      @black_pieces << square
+
+      if square.class == Rook
+        if square.pos == [0,7]
+          @black_right_rook = true
+        elsif square.pos == [0,0]
+          @black_left_rook = true
+        end
+      end
+
+      @points1 -= square.value
+    else
+      square = @dom_white.pop
+      @white_pieces << square
+
+      if square.class == Rook
+        if square.pos == [7,7]
+          @white_right_rook = true
+        elsif square.pos == [7,0]
+          @white_left_rook = true
+        end
+      end
+
+      @points2 -= square.value
+    end
   end
   
   def promotion(player, piece, error=false)
