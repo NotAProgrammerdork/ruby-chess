@@ -185,9 +185,7 @@ class Chess
     @passant = nil
   end
   
-  def play(player, check=false)
-    make_board
-    print_board
+  def set_game(player)
     if player == 1
       @name = @first_player
       @color = "white"
@@ -203,6 +201,12 @@ class Chess
       @my_king = @black_king
       @enemy_king = @white_king
     end
+  end
+  
+  def play(player, check=false)
+    make_board
+    print_board
+    set_game(player)
     
     puts "\n-king in check-" if check
     dom = (player == 1 ? @dom_black : @dom_white)
@@ -401,21 +405,30 @@ class Chess
 
   def change_position(player, piece)
     square = @board[@to[0]][@to[1]]
-    unless @passant.nil?
+    if !@passant.nil? && piece.class == Pawn
+      if @to == [@passant.pos[0]-1, @passant.pos[1]] ||
+          @to == [@passant.pos[0]+1, @passant.pos[1]]
+        square = @passant
+      end
+=begin
       if @to == [piece.pos[0]-1, piece.pos[1]+1] ||
           @to == [piece.pos[0]+1, piece.pos[1]+1]
         
+    p square
+    gets
         square = @board[piece.pos[0]][piece.pos[1]+1]
+    p square
+    gets
       elsif @to == [piece.pos[0]-1, piece.pos[1]-1] ||
           @to == [piece.pos[0]+1, piece.pos[1]-1]
         
         square = @board[piece.pos[0]][piece.pos[1]-1]
       end
+=end
     end
     piece.pos = @to
     piece.set_moves
     eaten = false
-    
     execute_castling(piece) if piece.class == King || piece.class == Rook
     
     unless square == "-"
@@ -448,7 +461,6 @@ class Chess
       end
       eaten = true
     end
-    
     make_board
     if @enemy_pieces.length == 1
       @enemy_king.moves.each do |move|
@@ -605,16 +617,16 @@ class Chess
     if piece.class == Pawn && !piece.moves.empty?
       if piece.color == "white"
         piece.moves.clear unless is_empty?([piece.pos[0]-1,piece.pos[1]])
-        piece.moves << [piece.pos[0]-1,piece.pos[1]+1] if is_enemy?([piece.pos[0]-1,piece.pos[1]+1],board)
-        piece.moves << [piece.pos[0]-1,piece.pos[1]-1] if is_enemy?([piece.pos[0]-1,piece.pos[1]-1],board)
+        piece.moves << [piece.pos[0]-1,piece.pos[1]+1] if is_enemy?("black",[piece.pos[0]-1,piece.pos[1]+1],board)
+        piece.moves << [piece.pos[0]-1,piece.pos[1]-1] if is_enemy?("black",[piece.pos[0]-1,piece.pos[1]-1],board)
         
         if first_move && @board[piece.pos[0]-2][piece.pos[1]] == "-"
           piece.moves << [piece.pos[0]-2,piece.pos[1]]
         end
       else
         piece.moves.clear unless is_empty?([piece.pos[0]+1,piece.pos[1]])
-        piece.moves << [piece.pos[0]+1,piece.pos[1]+1] if is_enemy?([piece.pos[0]+1,piece.pos[1]+1],board)
-        piece.moves << [piece.pos[0]+1,piece.pos[1]-1] if is_enemy?([piece.pos[0]+1,piece.pos[1]-1],board)
+        piece.moves << [piece.pos[0]+1,piece.pos[1]+1] if is_enemy?("white",[piece.pos[0]+1,piece.pos[1]+1],board)
+        piece.moves << [piece.pos[0]+1,piece.pos[1]-1] if is_enemy?("white",[piece.pos[0]+1,piece.pos[1]-1],board)
         
         if first_move && @board[piece.pos[0]+2][piece.pos[1]] == "-"
           piece.moves << [piece.pos[0]+2,piece.pos[1]]
@@ -760,12 +772,12 @@ class Chess
     piece.moves.reject! {|move| is_ally?(piece.color, move)}
   end
   
-  def is_enemy?(pos, board=@board)
+  def is_enemy?(color, pos, board=@board)
     enemy = false
     if (0..7).include?(pos[0]) &&
        (0..7).include?(pos[1]) &&
        board[pos[0]][pos[1]] != "-" &&
-       board[pos[0]][pos[1]].color != @color
+       board[pos[0]][pos[1]].color == color
       
       enemy = true
     end
